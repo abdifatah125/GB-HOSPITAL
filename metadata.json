@@ -1,0 +1,6 @@
+{
+  "name": "Garasbaley Hospital Management System",
+  "description": "Comprehensive Hospital Management System for Garasbaley Hospital (GB Hospital) including EHR, Appointments, Pharmacy, Lab, Maternity, Billing, and Analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
