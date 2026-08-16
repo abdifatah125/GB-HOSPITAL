@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DoctorStaff, Department } from '../types';
 import { api } from '../services/api';
-import { Search, Calendar, Clock, DollarSign, UserCheck, ArrowRight, Filter } from 'lucide-react';
+import { DoctorAvatar } from '../components/DoctorAvatar';
+import { Search, Calendar, Clock, ArrowRight, Filter } from 'lucide-react';
 
 interface PublicFindDoctorPageProps {
   setCurrentTab: (tab: string) => void;
@@ -96,26 +97,29 @@ export const PublicFindDoctorPage: React.FC<PublicFindDoctorPageProps> = ({
             className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
           >
             <div className="space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-base font-extrabold text-emerald-950">{doc.name}</h3>
-                  <p className="text-xs font-bold text-emerald-700">{doc.specialization}</p>
+              <div className="flex items-start gap-3">
+                <DoctorAvatar src={doc.photoUrl} name={doc.name} size="lg" showBadge />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-1">
+                    <h3 className="text-sm font-extrabold text-emerald-950 truncate">{doc.name}</h3>
+                  </div>
+                  <p className="text-xs font-bold text-emerald-700 truncate">{doc.specialization}</p>
+                  <span className="inline-block mt-1 bg-emerald-50 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
+                    {doc.departmentName}
+                  </span>
                 </div>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded uppercase">
-                  {doc.departmentName}
-                </span>
               </div>
 
               <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-100 text-xs space-y-1.5 text-gray-700">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>
+                  <span className="truncate">
                     Days: <strong className="text-emerald-950">{doc.availableDays.join(', ')}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Hours: {doc.availableHours}</span>
+                  <span className="truncate">Hours: {doc.availableHours}</span>
                 </div>
               </div>
             </div>

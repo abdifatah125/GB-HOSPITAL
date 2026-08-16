@@ -32,21 +32,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           const res = await api.getMe();
-          setAuthenticatedUser(res.user);
-          setUser(res.user);
+          if (res.user.isActive === false || res.user.status === 'Disabled' || !res.user.isActive) {
+            console.warn('Current user account is deactivated by Admin.');
+            removeStoredToken();
+            setAuthenticatedUser(null);
+            setUser(null);
+          } else {
+            setAuthenticatedUser(res.user);
+            setUser(res.user);
+          }
         } catch (err) {
-          console.warn('Stored token invalid, resetting auth state.');
+          console.warn('Stored token invalid or deactivated, resetting auth state.');
           removeStoredToken();
-          // Fallback default admin user for initial preview
-          const defaultAdmin = INITIAL_USERS[0];
-          setAuthenticatedUser(defaultAdmin);
-          setUser(defaultAdmin);
+          setAuthenticatedUser(null);
+          setUser(null);
         }
       } else {
-        // Default initial preview user is Admin
-        const defaultAdmin = INITIAL_USERS[0];
-        setAuthenticatedUser(defaultAdmin);
-        setUser(defaultAdmin);
+        // No stored token: show LoginPage so users can authenticate
+        setAuthenticatedUser(null);
+        setUser(null);
       }
       setLoading(false);
     };
@@ -58,31 +62,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const res = await api.login(usernameOrEmail, password);
-      if (res.user.isActive === false || res.user.status === 'Disabled') {
-        throw new Error('Account Disabled: This user account has been deactivated by the Hospital Administrator.');
+      if (res.user.isActive === false || res.user.status === 'Disabled' || !res.user.isActive) {
+        removeStoredToken();
+        throw new Error(
+          `Account Disabled: User "${res.user.name}" (${res.user.username}) has been deactivated by the Hospital Administrator. Access is blocked.`
+        );
       }
       setStoredToken(res.token);
       setAuthenticatedUser(res.user);
       setUser(res.user);
     } catch (err: any) {
-      if (err.message && err.message.toLowerCase().includes('disabled')) {
-        throw err;
-      }
-      // Client fallback for seeded demo users
-      const target = usernameOrEmail.toLowerCase().trim();
-      const match = INITIAL_USERS.find(
-        (u) => u.username.toLowerCase() === target || u.email.toLowerCase() === target
-      );
-
-      if (match) {
-        if (match.isActive === false || match.status === 'Disabled') {
-          throw new Error('Account Disabled: This user account has been deactivated by the Hospital Administrator.');
-        }
-        setAuthenticatedUser(match);
-        setUser(match);
-      } else {
-        throw new Error(err.message || 'Invalid username or password');
-      }
+      removeStoredToken();
+      setAuthenticatedUser(null);
+      setUser(null);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -90,34 +83,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const quickLoginAsRole = async (role: UserRole) => {
     setLoading(true);
-    const matchedUser = INITIAL_USERS.find((u) => u.role === role) || {
-      id: `usr-${role.toLowerCase()}`,
-      username: role.toLowerCase(),
-      email: `${role.toLowerCase()}@gbhospital.com`,
-      role,
-      name: `Demo ${role}`,
-      createdAt: new Date().toISOString().split('T')[0],
-      isActive: true,
-      status: 'Active' as const,
+    const roleUsernameMap: Record<UserRole, string> = {
+      Admin: 'admin',
+      Doctor: 'doctor',
+      Receptionist: 'receptionist',
+      Pharmacist: 'pharmacist',
+      'Lab Technician': 'labtech',
+      Midwife: 'midwife',
+      Patient: 'patient',
     };
+    const username = roleUsernameMap[role] || role.toLowerCase();
 
     try {
-      const res = await api.login(matchedUser.username, 'password');
-      if (res.user.isActive === false || res.user.status === 'Disabled') {
+      const res = await api.login(username, 'password');
+      if (res.user.isActive === false || res.user.status === 'Disabled' || !res.user.isActive) {
+        removeStoredToken();
         throw new Error(`Account for role "${role}" has been deactivated by the Hospital Administrator.`);
       }
       setStoredToken(res.token);
       setAuthenticatedUser(res.user);
       setUser(res.user);
     } catch (err: any) {
-      if (err.message && (err.message.includes('deactivated') || err.message.includes('Disabled') || err.message.includes('disabled'))) {
-        throw err;
-      }
-      if (matchedUser.isActive === false || matchedUser.status === 'Disabled') {
-        throw new Error(`Account for role "${role}" is deactivated by the Administrator.`);
-      }
-      setAuthenticatedUser(matchedUser);
-      setUser(matchedUser);
+      removeStoredToken();
+      setAuthenticatedUser(null);
+      setUser(null);
+      throw err;
     } finally {
       setLoading(false);
     }

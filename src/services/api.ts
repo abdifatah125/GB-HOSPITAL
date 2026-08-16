@@ -45,7 +45,11 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(url, { ...options, headers });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      throw new Error(errBody.error || `Request failed with status ${res.status}`);
+      const errorMsg = errBody.error || `Request failed with status ${res.status}`;
+      const err = new Error(errorMsg);
+      (err as any).status = res.status;
+      (err as any).accountDisabled = errBody.accountDisabled || res.status === 403;
+      throw err;
     }
     return await res.json();
   } catch (err: any) {
@@ -69,6 +73,18 @@ export const api = {
     }),
 
   getMe: () => request<{ user: User }>('/api/auth/me'),
+  getDemoAccounts: () =>
+    request<
+      Array<{
+        id: string;
+        name: string;
+        username: string;
+        email: string;
+        role: UserRole;
+        isActive: boolean;
+        status: 'Active' | 'Disabled';
+      }>
+    >('/api/auth/demo-accounts'),
 
   // Departments
   getDepartments: () => request<Department[]>('/api/departments'),

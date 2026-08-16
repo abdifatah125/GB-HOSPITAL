@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DoctorStaff, Department, StaffRoleType } from '../types';
 import { api } from '../services/api';
+import { DoctorAvatar } from '../components/DoctorAvatar';
 import {
   UserCheck,
   Plus,
@@ -22,6 +23,9 @@ import {
   X,
   BadgePercent,
   Check,
+  Camera,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 interface HospitalRoleDefinition {
@@ -398,6 +402,7 @@ export const DoctorStaffManagement: React.FC = () => {
 
   // Form fields
   const [name, setName] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
   const [role, setRole] = useState<StaffRoleType>('Doctor');
   const [roleCategory, setRoleCategory] = useState<string>('Medical & Specialists');
   const [designation, setDesignation] = useState('');
@@ -412,6 +417,8 @@ export const DoctorStaffManagement: React.FC = () => {
   const [availableHours, setAvailableHours] = useState('08:00 AM - 02:00 PM');
   const [consultationFee, setConsultationFee] = useState<number>(25);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const staffFileInputRef = useRef<HTMLInputElement>(null);
 
   const daysOptions = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -459,10 +466,26 @@ export const DoctorStaffManagement: React.FC = () => {
     }
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image is too large. Please select an image under 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleOpenModal = (doc?: DoctorStaff) => {
     if (doc) {
       setEditingDoc(doc);
       setName(doc.name);
+      setPhotoUrl(doc.photoUrl || '');
       setRole(doc.role as StaffRoleType);
       setRoleCategory(doc.roleCategory || 'Medical & Specialists');
       setDesignation(doc.designation || '');
@@ -480,6 +503,7 @@ export const DoctorStaffManagement: React.FC = () => {
       const defaultRoleDef = HOSPITAL_ROLES[0];
       setEditingDoc(null);
       setName('');
+      setPhotoUrl('');
       setRole('Doctor');
       setRoleCategory('Medical & Specialists');
       setDesignation('Medical Practitioner');
@@ -512,6 +536,7 @@ export const DoctorStaffManagement: React.FC = () => {
 
     const docData: Partial<DoctorStaff> = {
       name,
+      photoUrl: photoUrl || undefined,
       role,
       roleCategory: (selectedRoleDef?.category || roleCategory) as any,
       designation: designation || (selectedRoleDef?.label ?? role),
@@ -728,21 +753,24 @@ export const DoctorStaffManagement: React.FC = () => {
                 className="bg-white p-5 rounded-2xl border border-emerald-100/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-3.5 group"
               >
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-base font-black text-emerald-950 group-hover:text-emerald-700 transition-colors">
-                        {doc.name}
-                      </h3>
+                  <div className="flex items-start gap-3">
+                    <DoctorAvatar src={doc.photoUrl} name={doc.name} size="md" showBadge />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-1">
+                        <h3 className="text-base font-black text-emerald-950 group-hover:text-emerald-700 transition-colors truncate">
+                          {doc.name}
+                        </h3>
+                      </div>
                       <p className="text-xs font-bold text-emerald-700 mt-0.5 flex items-center gap-1">
                         <Stethoscope className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>{doc.specialization}</span>
+                        <span className="truncate">{doc.specialization}</span>
                       </p>
+                      <span
+                        className={`inline-block mt-1.5 text-[9px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider ${badgeClass}`}
+                      >
+                        {doc.role}
+                      </span>
                     </div>
-                    <span
-                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border uppercase tracking-wider shrink-0 ${badgeClass}`}
-                    >
-                      {doc.role}
-                    </span>
                   </div>
 
                   {/* Professional Qualifications & License */}
@@ -853,6 +881,64 @@ export const DoctorStaffManagement: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Profile Photo Section */}
+              <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 flex flex-col sm:flex-row items-center gap-4">
+                <div className="relative group">
+                  <DoctorAvatar src={photoUrl} name={name || 'Doctor'} size="xl" showBadge />
+                  <button
+                    type="button"
+                    onClick={() => staffFileInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 bg-emerald-700 hover:bg-emerald-800 text-white p-1.5 rounded-full shadow-md transition-transform hover:scale-110 cursor-pointer"
+                    title="Upload photo"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    ref={staffFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="flex-1 w-full space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-gray-700 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                      Staff Profile Photo
+                    </label>
+                    <span className="text-[10px] text-gray-500">URL or Upload from device</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={photoUrl}
+                      onChange={(e) => setPhotoUrl(e.target.value)}
+                      placeholder="Paste image URL (e.g. https://images.unsplash.com/...)"
+                      className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => staffFileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-white hover:bg-gray-50 text-emerald-800 border border-emerald-200 rounded-lg font-bold flex items-center gap-1 shrink-0 cursor-pointer"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>Upload</span>
+                    </button>
+                    {photoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setPhotoUrl('')}
+                        className="px-2 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-bold shrink-0 cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Row 1: Full Name & Primary Hospital Role */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

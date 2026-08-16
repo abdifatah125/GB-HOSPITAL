@@ -28,11 +28,26 @@ export const LoginPage: React.FC = () => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+
+    const inputUser = usernameOrEmail.trim();
+    if (!inputUser) {
+      setMessage({ type: 'error', text: 'Please enter your username or registered email address.' });
+      return;
+    }
+
+    if (!password) {
+      setMessage({ type: 'error', text: 'Please enter your account password.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await login(usernameOrEmail || 'admin', password || 'password');
+      await login(inputUser, password);
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Login failed. Please check credentials or contact Admin.' });
+      setMessage({
+        type: 'error',
+        text: err.message || 'Login failed. Please check your credentials or contact the Hospital Administrator.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -42,7 +57,7 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setMessage(null);
     if (!resetEmail) {
-      setMessage({ type: 'error', text: 'Please enter your registered email address' });
+      setMessage({ type: 'error', text: 'Please enter your registered email address.' });
       return;
     }
     const resText = await resetPassword(resetEmail);
@@ -50,69 +65,78 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Decorative ambient blurred medical cross/glow */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Decorative ambient blurred glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-10 right-10 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10">
-        {/* Hospital Logo Emblem with glowing effect */}
-        <div className="flex justify-center mb-4">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10 mb-2">
+        {/* Hospital Logo Emblem */}
+        <div className="flex justify-center mb-3">
           <HospitalLogo size="xl" variant="light" showBadge={true} badgeText="Hospital System 2026" />
         </div>
       </div>
 
-      <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-lg relative z-10">
-        <div className="bg-white/95 backdrop-blur-md py-8 px-6 shadow-2xl rounded-3xl border border-white/20 sm:px-10">
+      <div className="sm:mx-auto sm:w-full sm:max-w-lg relative z-10">
+        <div className="bg-white/95 backdrop-blur-md py-7 px-6 shadow-2xl rounded-3xl border border-white/20 sm:px-9">
           {/* Tab Navigation */}
-          <div className="flex rounded-xl bg-slate-100 p-1 mb-6 border border-slate-200">
+          <div className="flex rounded-xl bg-slate-100 p-1 mb-5 border border-slate-200">
             <button
-              onClick={() => { setActiveTab('login'); setMessage(null); }}
+              onClick={() => {
+                setActiveTab('login');
+                setMessage(null);
+              }}
               className={`flex-1 py-2 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'login'
                   ? 'bg-emerald-700 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <LogIn className="w-3.5 h-3.5" /> Login
+              <LogIn className="w-3.5 h-3.5" /> Login Portal
             </button>
             <button
-              onClick={() => { setActiveTab('register'); setMessage(null); }}
+              onClick={() => {
+                setActiveTab('register');
+                setMessage(null);
+              }}
               className={`flex-1 py-2 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'register'
                   ? 'bg-emerald-700 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <UserPlus className="w-3.5 h-3.5" /> Register
+              <UserPlus className="w-3.5 h-3.5" /> Registration Policy
             </button>
             <button
-              onClick={() => { setActiveTab('forgot'); setMessage(null); }}
+              onClick={() => {
+                setActiveTab('forgot');
+                setMessage(null);
+              }}
               className={`flex-1 py-2 text-xs font-black rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'forgot'
                   ? 'bg-emerald-700 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <KeyRound className="w-3.5 h-3.5" /> Reset
+              <KeyRound className="w-3.5 h-3.5" /> Password Reset
             </button>
           </div>
 
           {/* Feedback Message */}
           {message && (
             <div
-              className={`p-3.5 rounded-xl mb-6 text-xs font-bold flex items-center gap-2 border shadow-xs ${
+              className={`p-3.5 rounded-xl mb-5 text-xs font-bold flex items-start gap-2.5 border shadow-xs animate-fadeIn ${
                 message.type === 'error'
-                  ? 'bg-red-50 text-red-800 border-red-200'
-                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  ? 'bg-red-50 text-red-900 border-red-200'
+                  : 'bg-emerald-50 text-emerald-900 border-emerald-200'
               }`}
             >
               {message.type === 'error' ? (
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               )}
-              <span>{message.text}</span>
+              <div className="leading-relaxed">{message.text}</div>
             </div>
           )}
 
@@ -121,7 +145,7 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Username or Email
+                  Username or Registered Email
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -129,24 +153,24 @@ export const LoginPage: React.FC = () => {
                     type="text"
                     value={usernameOrEmail}
                     onChange={(e) => setUsernameOrEmail(e.target.value)}
-                    placeholder="e.g. admin@gbhospital.com or admin"
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Enter your username or email..."
+                    className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-medium"
+                    autoComplete="username"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Password
-                </label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="Enter your password..."
+                    className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-medium"
+                    autoComplete="current-password"
                   />
                 </div>
               </div>
@@ -154,9 +178,9 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold transition-colors shadow-md flex items-center justify-center gap-2"
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
               >
-                <LogIn className="w-4 h-4" /> Sign In to GB Hospital
+                <LogIn className="w-4 h-4" /> Sign In to Garasbaley Hospital
               </button>
             </form>
           )}
@@ -190,12 +214,12 @@ export const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setActiveTab('login');
-                  setUsernameOrEmail('admin@gbhospital.com');
-                  setPassword('password');
+                  setUsernameOrEmail('');
+                  setPassword('');
                 }}
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-xl text-xs font-bold transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                <LogIn className="w-4 h-4" /> Go to Admin Login (admin@gbhospital.com)
+                <LogIn className="w-4 h-4" /> Go to Login Portal
               </button>
             </div>
           )}
@@ -212,13 +236,13 @@ export const LoginPage: React.FC = () => {
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   placeholder="e.g. user@gbhospital.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold transition-colors shadow-md flex items-center justify-center gap-2"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <KeyRound className="w-4 h-4" /> Send Reset Link
               </button>

@@ -31,6 +31,9 @@ export interface Department {
   description: string;
   headDoctorId?: string;
   headDoctorName?: string;
+  headDoctorPhoto?: string;
+  headDoctorSpecialty?: string;
+  headDoctorQualification?: string;
   extension: string;
   location: string; // e.g., "Floor 2, West Wing"
   ward?: string;
@@ -108,6 +111,7 @@ export interface DoctorStaff {
   availableDays: string[]; // e.g., ['Mon', 'Wed', 'Fri']
   availableHours: string; // e.g., '08:00 - 14:00'
   consultationFee: number;
+  photoUrl?: string;
 }
 
 export interface Patient {

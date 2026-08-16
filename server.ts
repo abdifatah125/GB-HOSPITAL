@@ -59,16 +59,34 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Middleware to authenticate JWT
+  // Middleware to authenticate JWT & enforce active status
   const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) return res.status(401).json({ error: 'Access token required' });
 
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
       if (err) return res.status(403).json({ error: 'Invalid or expired token' });
-      req.user = user;
+
+      // Lookup live user record in memory
+      const foundUser = users.find(
+        (u) => u.id === decoded.id || u.username.toLowerCase() === decoded.username?.toLowerCase()
+      );
+
+      if (!foundUser) {
+        return res.status(404).json({ error: 'User account no longer exists' });
+      }
+
+      // Check if user is disabled or inactive
+      if (foundUser.isActive === false || foundUser.status === 'Disabled' || !foundUser.isActive) {
+        return res.status(403).json({
+          error: `Account Disabled: User account "${foundUser.name}" (${foundUser.username}) has been deactivated by the Hospital Administrator. Access is blocked.`,
+          accountDisabled: true,
+        });
+      }
+
+      req.user = foundUser;
       next();
     });
   };
@@ -89,14 +107,15 @@ async function startServer() {
       return res.status(401).json({ error: 'User not found with provided credentials' });
     }
 
-    // Check if user is disabled / deactivated by Admin
-    if (user.isActive === false || user.status === 'Disabled') {
+    // STRICT CHECK: Check if user is disabled / deactivated by Admin
+    if (user.isActive === false || user.status === 'Disabled' || !user.isActive) {
       return res.status(403).json({
-        error: 'Account Disabled: This user account has been deactivated by the Hospital Administrator. Access is blocked.',
+        error: `Account Disabled: User "${user.name}" (${user.username}) has been deactivated by the Hospital Administrator. Login and system access are blocked.`,
+        accountDisabled: true,
       });
     }
 
-    // For demo ease, any password or 'password' works for seeded demo users
+    // For demo ease, any password works for seeded demo users
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, name: user.name },
       JWT_SECRET,
@@ -166,7 +185,27 @@ async function startServer() {
   app.get('/api/auth/me', authenticateToken, (req: any, res) => {
     const user = users.find((u) => u.id === req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.isActive === false || user.status === 'Disabled' || !user.isActive) {
+      return res.status(403).json({
+        error: `Account Disabled: User "${user.name}" (${user.username}) has been deactivated by the Hospital Administrator.`,
+        accountDisabled: true,
+      });
+    }
     res.json({ user });
+  });
+
+  // Public endpoint for LoginPage to show available demo accounts and their live status
+  app.get('/api/auth/demo-accounts', (req, res) => {
+    const list = users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      isActive: u.isActive !== false && u.status !== 'Disabled',
+      status: u.status || (u.isActive === false ? 'Disabled' : 'Active'),
+    }));
+    res.json(list);
   });
 
   // --- ADMIN USER & ROLE MANAGEMENT ---
