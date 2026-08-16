@@ -57,3 +57,11 @@
     display: none !important;
   }
 }
+
+/* Hide the Instant Demo Logins section */
+.instant-demo-logins,
+.demo-login-section,
+[class*="demo-login"],
+[class*="instant-demo"] {
+  display: none !important;
+}

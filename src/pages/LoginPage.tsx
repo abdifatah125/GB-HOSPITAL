@@ -1,39 +1,23 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
 import { HospitalLogo } from '../components/HospitalLogo';
 import {
   Shield,
-  Stethoscope,
-  Clipboard,
-  Pill,
-  TestTube,
-  Baby,
-  User as UserIcon,
   KeyRound,
   Mail,
   Lock,
   UserPlus,
   LogIn,
-  Hospital,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, register, resetPassword, quickLoginAsRole } = useAuth();
+  const { login, resetPassword } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'forgot'>('login');
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Register form state
-  const [regName, setRegName] = useState('');
-  const [regUsername, setRegUsername] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPhone, setRegPhone] = useState('');
-  const [regRole, setRegRole] = useState<UserRole>('Patient');
-  const [regPassword, setRegPassword] = useState('');
 
   // Reset password state
   const [resetEmail, setResetEmail] = useState('');
@@ -48,28 +32,7 @@ export const LoginPage: React.FC = () => {
     try {
       await login(usernameOrEmail || 'admin', password || 'password');
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Login failed' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(null);
-    setIsSubmitting(true);
-    try {
-      await register({
-        name: regName,
-        username: regUsername,
-        email: regEmail,
-        phone: regPhone,
-        role: regRole,
-        password: regPassword,
-      });
-      setMessage({ type: 'success', text: 'Account registered successfully!' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Registration failed' });
+      setMessage({ type: 'error', text: err.message || 'Login failed. Please check credentials or contact Admin.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -85,16 +48,6 @@ export const LoginPage: React.FC = () => {
     const resText = await resetPassword(resetEmail);
     setMessage({ type: 'success', text: resText });
   };
-
-  const demoRoles: { role: UserRole; label: string; icon: any; email: string }[] = [
-    { role: 'Admin', label: 'Admin', icon: Shield, email: 'admin@gbhospital.com' },
-    { role: 'Doctor', label: 'Doctor', icon: Stethoscope, email: 'doctor@gbhospital.com' },
-    { role: 'Receptionist', label: 'Receptionist', icon: Clipboard, email: 'reception@gbhospital.com' },
-    { role: 'Pharmacist', label: 'Pharmacist', icon: Pill, email: 'pharmacy@gbhospital.com' },
-    { role: 'Lab Technician', label: 'Lab Tech', icon: TestTube, email: 'lab@gbhospital.com' },
-    { role: 'Midwife', label: 'Midwife', icon: Baby, email: 'midwife@gbhospital.com' },
-    { role: 'Patient', label: 'Patient', icon: UserIcon, email: 'patient@gbhospital.com' },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -208,95 +161,43 @@ export const LoginPage: React.FC = () => {
             </form>
           )}
 
-          {/* REGISTER FORM */}
+          {/* REGISTER TAB - ADMIN RESTRICTION POLICY */}
           {activeTab === 'register' && (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={regName}
-                  onChange={(e) => setRegName(e.target.value)}
-                  placeholder="e.g. Dr. Said Hassan"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs"
-                />
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs">
+                <div className="font-extrabold flex items-center gap-1.5 text-amber-900 mb-1">
+                  <Shield className="w-4 h-4 text-amber-700" />
+                  Admin-Only Account Registration Policy
+                </div>
+                <p className="text-amber-800 leading-relaxed">
+                  In compliance with Garasbaley Hospital clinical security & privacy regulations, public self-registration is closed. Only the <strong>Hospital System Administrator</strong> is authorized to register, provision, reset roles, and activate accounts for doctors, clinical staff, nurses, lab technologists, pharmacists, and patients.
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Username</label>
-                  <input
-                    type="text"
-                    required
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                    placeholder="username"
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs"
-                  />
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2.5">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-emerald-700" />
+                  How to get an account:
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="email@gbhospital.com"
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number</label>
-                  <input
-                    type="text"
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="+252 61 0000000"
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Assign Role</label>
-                  <select
-                    value={regRole}
-                    onChange={(e) => setRegRole(e.target.value as UserRole)}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-emerald-800"
-                  >
-                    <option value="Patient">Patient</option>
-                    <option value="Doctor">Doctor</option>
-                    <option value="Receptionist">Receptionist</option>
-                    <option value="Pharmacist">Pharmacist</option>
-                    <option value="Lab Technician">Lab Technician</option>
-                    <option value="Midwife">Midwife</option>
-                    <option value="Admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs"
-                />
+                <ul className="list-disc list-inside text-slate-600 space-y-1 text-[11px]">
+                  <li><strong>Hospital Staff / Doctors / Technicians:</strong> Request credentials from Hospital Administration IT Desk.</li>
+                  <li><strong>Patients / Reception:</strong> Registration is handled in-person or directly provisioned by hospital admins.</li>
+                  <li><strong>Hospital Administrators:</strong> Log in with Admin credentials to access the User & Role Management Portal.</li>
+                </ul>
               </div>
 
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold transition-colors shadow-md mt-2 flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => {
+                  setActiveTab('login');
+                  setUsernameOrEmail('admin@gbhospital.com');
+                  setPassword('password');
+                }}
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-xl text-xs font-bold transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                <UserPlus className="w-4 h-4" /> Create Account
+                <LogIn className="w-4 h-4" /> Go to Admin Login (admin@gbhospital.com)
               </button>
-            </form>
+            </div>
           )}
 
           {/* FORGOT PASSWORD FORM */}
@@ -323,33 +224,6 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
           )}
-
-          {/* DEMO 1-CLICK ROLE QUICK LOGINS */}
-          <div className="mt-8 pt-6 border-t border-emerald-100">
-            <h3 className="text-xs font-extrabold text-emerald-900 uppercase tracking-wider mb-3 text-center flex items-center justify-center gap-1">
-              <Hospital className="w-3.5 h-3.5 text-emerald-600" />
-              Instant Demo Logins (1-Click Role Testing):
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {demoRoles.map(({ role, label, icon: Icon, email }) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => quickLoginAsRole(role)}
-                  className="flex items-center gap-1.5 p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition-all text-xs font-bold text-left group"
-                >
-                  <div className="w-6 h-6 rounded bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="truncate">{label}</div>
-                    <div className="text-[10px] text-emerald-600 font-normal truncate">{email}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

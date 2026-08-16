@@ -25,9 +25,14 @@ import {
   X,
   ArrowRightLeft,
   ShieldAlert,
+  Pill,
 } from 'lucide-react';
 
-export const PatientManagement: React.FC = () => {
+interface PatientManagementProps {
+  onNavigateToPrescriptions?: (patientId?: string) => void;
+}
+
+export const PatientManagement: React.FC<PatientManagementProps> = ({ onNavigateToPrescriptions }) => {
   const { user } = useAuth();
   const isDoctor = user?.role === 'Doctor';
 
@@ -437,6 +442,17 @@ Medical Notes: ${pat.medicalHistory || 'None'}
                       <Eye className="w-3.5 h-3.5" /> Record
                     </button>
 
+                    {/* Prescribe Medication Button */}
+                    {onNavigateToPrescriptions && (
+                      <button
+                        onClick={() => onNavigateToPrescriptions(pat.id)}
+                        className="p-1.5 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-300 font-black text-xs inline-flex items-center gap-1 cursor-pointer"
+                        title="Write and Send Doctor e-Prescription (Rx) to Pharmacy"
+                      >
+                        <Pill className="w-3.5 h-3.5 text-emerald-700" /> Prescribe Rx
+                      </button>
+                    )}
+
                     {/* Refer to Specialist Doctor */}
                     <button
                       onClick={() => handleOpenReferral(pat)}
@@ -768,16 +784,32 @@ Medical Notes: ${pat.medicalHistory || 'None'}
               )}
             </div>
 
-            <div className="flex justify-between items-center border-t pt-3">
-              <button
-                onClick={() => viewingPatient && handleOpenPrintCard(viewingPatient)}
-                className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Printer className="w-4 h-4" /> Print Reception Card
-              </button>
+            <div className="flex flex-wrap justify-between items-center border-t pt-3 gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => viewingPatient && handleOpenPrintCard(viewingPatient)}
+                  className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-4 h-4" /> Print Reception Card
+                </button>
+
+                {onNavigateToPrescriptions && viewingPatient && (
+                  <button
+                    onClick={() => {
+                      const pid = viewingPatient.id;
+                      setViewingPatient(null);
+                      onNavigateToPrescriptions(pid);
+                    }}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Pill className="w-4 h-4" /> Write e-Prescription (Rx)
+                  </button>
+                )}
+              </div>
+
               <button
                 onClick={() => setViewingPatient(null)}
-                className="px-5 py-2 bg-emerald-700 text-white font-bold text-xs rounded-xl hover:bg-emerald-800 cursor-pointer"
+                className="px-5 py-2 bg-slate-200 text-slate-800 font-bold text-xs rounded-xl hover:bg-slate-300 cursor-pointer"
               >
                 Close EHR Profile
               </button>

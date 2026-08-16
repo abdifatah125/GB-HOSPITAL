@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { RoleQuickSwitch } from './components/RoleQuickSwitch';
 import { HospitalLogo } from './components/HospitalLogo';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -8,10 +7,12 @@ import { DepartmentManagement } from './pages/DepartmentManagement';
 import { PublicDepartmentsPage } from './pages/PublicDepartmentsPage';
 import { DoctorStaffManagement } from './pages/DoctorStaffManagement';
 import { PublicFindDoctorPage } from './pages/PublicFindDoctorPage';
+import { UserRoleManagement } from './pages/UserRoleManagement';
 import { PatientManagement } from './pages/PatientManagement';
 import { AppointmentScheduling } from './pages/AppointmentScheduling';
 import { MedicineLibrary } from './pages/MedicineLibrary';
 import { PharmacyInventory } from './pages/PharmacyInventory';
+import { PrescriptionManagement } from './pages/PrescriptionManagement';
 import { LabManagement } from './pages/LabManagement';
 import { PaymentManagement } from './pages/PaymentManagement';
 import {
@@ -31,6 +32,9 @@ import {
   X,
   Activity,
   ShieldCheck,
+  ShieldAlert,
+  Stethoscope,
+  FileText,
 } from 'lucide-react';
 import { UserRole } from './types';
 
@@ -38,18 +42,23 @@ const MainApp: React.FC = () => {
   const { user, logout } = useAuth();
   const role: UserRole = user?.role || 'Admin';
 
+  // State for navigating to prescriptions with preselected patient
+  const [targetPatientIdForRx, setTargetPatientIdForRx] = useState<string | undefined>(undefined);
+
   // Navigation Items mapped by role accessibility
   const navItems = [
     { id: 'dashboard', label: 'Executive Dashboard', icon: LayoutDashboard, category: 'Main', roles: ['Admin'] },
+    { id: 'user-management', label: 'User & Role Access', icon: ShieldAlert, category: 'Main', roles: ['Admin'] },
     { id: 'departments', label: 'Departments', icon: Building2, category: 'Clinical Operations', roles: ['Admin', 'Doctor', 'Receptionist', 'Pharmacist', 'Lab Technician', 'Midwife', 'Patient'] },
     { id: 'doctors', label: 'Doctors & Staff', icon: UserCheck, category: 'Clinical Operations', roles: ['Admin'] },
     { id: 'find-doctor', label: 'Find a Doctor', icon: Search, category: 'Clinical Operations', roles: ['Admin', 'Doctor', 'Receptionist', 'Pharmacist', 'Lab Technician', 'Midwife', 'Patient'] },
-    { id: 'patients', label: 'Patient Management', icon: Users, category: 'Patient Services', roles: ['Admin', 'Doctor', 'Receptionist', 'Lab Technician', 'Midwife'] },
+    { id: 'patients', label: 'Patient Management', icon: Users, category: 'Patient Services', roles: ['Admin', 'Doctor', 'Receptionist', 'Midwife'] },
     { id: 'appointments', label: 'Appointments', icon: Calendar, category: 'Patient Services', roles: ['Admin', 'Doctor', 'Receptionist', 'Patient'] },
+    { id: 'prescriptions', label: 'Doctor Prescriptions (Rx)', icon: FileText, category: 'Pharmacy & Diagnostics', roles: ['Admin', 'Doctor', 'Pharmacist', 'Patient'] },
     { id: 'medicine-library', label: 'Medicine Library', icon: BookOpen, category: 'Pharmacy & Diagnostics', roles: ['Admin', 'Pharmacist', 'Doctor'] },
     { id: 'pharmacy', label: 'Pharmacy & Stock', icon: Pill, category: 'Pharmacy & Diagnostics', roles: ['Admin', 'Pharmacist'] },
     { id: 'lab', label: 'Lab & Diagnostics', icon: TestTube, category: 'Pharmacy & Diagnostics', roles: ['Admin', 'Doctor', 'Lab Technician', 'Patient'] },
-    { id: 'payments', label: 'Billing & Payments', icon: CreditCard, category: 'Patient Services', roles: ['Admin', 'Receptionist', 'Pharmacist', 'Patient', 'Doctor', 'Midwife', 'Lab Technician'] },
+    { id: 'payments', label: 'Billing & Payments', icon: CreditCard, category: 'Patient Services', roles: ['Admin', 'Receptionist', 'Pharmacist', 'Patient', 'Doctor', 'Midwife'] },
   ];
 
   const visibleNavItems = navItems.filter((item) => item.roles.includes(role));
@@ -73,6 +82,8 @@ const MainApp: React.FC = () => {
     switch (currentTab) {
       case 'dashboard':
         return role === 'Admin' ? <AdminDashboard setCurrentTab={setCurrentTab} /> : <PublicDepartmentsPage />;
+      case 'user-management':
+        return role === 'Admin' ? <UserRoleManagement /> : <PublicDepartmentsPage />;
       case 'departments':
         return role === 'Admin' ? <DepartmentManagement /> : <PublicDepartmentsPage />;
       case 'doctors':
@@ -80,13 +91,31 @@ const MainApp: React.FC = () => {
       case 'find-doctor':
         return <PublicFindDoctorPage />;
       case 'patients':
-        return <PatientManagement />;
+        return (
+          <PatientManagement
+            onNavigateToPrescriptions={(patId?: string) => {
+              setTargetPatientIdForRx(patId);
+              setCurrentTab('prescriptions');
+            }}
+          />
+        );
       case 'appointments':
         return <AppointmentScheduling />;
+      case 'prescriptions':
+        return (
+          <PrescriptionManagement
+            initialPatientId={targetPatientIdForRx}
+            onNavigateToPharmacy={() => setCurrentTab('pharmacy')}
+          />
+        );
       case 'medicine-library':
         return <MedicineLibrary />;
       case 'pharmacy':
-        return <PharmacyInventory />;
+        return (
+          <PharmacyInventory
+            onNavigateToPrescriptions={() => setCurrentTab('prescriptions')}
+          />
+        );
       case 'lab':
         return <LabManagement />;
       case 'payments':
@@ -104,9 +133,6 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-200">
-      {/* Quick Role Switcher Banner for Testing */}
-      <RoleQuickSwitch />
-
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT SIDEBAR NAVIGATION */}
         <aside

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PharmacyItem, Medicine } from '../types';
+import { PharmacyItem, Medicine, Prescription } from '../types';
 import { api } from '../services/api';
 import {
   Pill,
@@ -12,11 +12,17 @@ import {
   MinusCircle,
   PlusCircle,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 
-export const PharmacyInventory: React.FC = () => {
+interface PharmacyInventoryProps {
+  onNavigateToPrescriptions?: () => void;
+}
+
+export const PharmacyInventory: React.FC<PharmacyInventoryProps> = ({ onNavigateToPrescriptions }) => {
   const [stock, setStock] = useState<PharmacyItem[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [pendingRxCount, setPendingRxCount] = useState<number>(0);
   const [search, setSearch] = useState('');
 
   // Add Stock Modal State
@@ -37,9 +43,14 @@ export const PharmacyInventory: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [pharmRes, medRes] = await Promise.all([api.getPharmacyStock(), api.getMedicines()]);
+      const [pharmRes, medRes, rxRes] = await Promise.all([
+        api.getPharmacyStock(),
+        api.getMedicines(),
+        api.getPrescriptions().catch(() => [] as Prescription[]),
+      ]);
       setStock(pharmRes);
       setMedicines(medRes);
+      setPendingRxCount(rxRes.filter((r) => r.status === 'Pending').length);
       if (medRes.length > 0 && !selectedMedicineId) {
         setSelectedMedicineId(medRes[0].id);
       }
@@ -119,12 +130,29 @@ export const PharmacyInventory: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 shrink-0"
-        >
-          <Plus className="w-4 h-4" /> Add Stock Batch
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {onNavigateToPrescriptions && (
+            <button
+              onClick={onNavigateToPrescriptions}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-extrabold text-xs px-3.5 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-emerald-700" />
+              Doctor Prescriptions Queue
+              {pendingRxCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px] animate-pulse">
+                  {pendingRxCount} Pending
+                </span>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> Add Stock Batch
+          </button>
+        </div>
       </div>
 
       {feedback && (

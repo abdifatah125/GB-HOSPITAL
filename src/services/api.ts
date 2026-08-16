@@ -1,5 +1,6 @@
 import {
   User,
+  UserRole,
   Department,
   DoctorStaff,
   Patient,
@@ -12,6 +13,7 @@ import {
   DeliveryRecord,
   PostnatalVisit,
   Invoice,
+  Prescription,
 } from '../types';
 
 const TOKEN_KEY = 'gb_hospital_jwt_token';
@@ -138,12 +140,53 @@ export const api = {
       body: JSON.stringify({ stockId, quantity }),
     }),
 
+  // Prescriptions & e-Rx Dispatch (Doctor -> Pharmacy)
+  getPrescriptions: (params?: { patientId?: string; doctorId?: string; status?: string }) => {
+    let url = '/api/prescriptions';
+    if (params) {
+      const q = new URLSearchParams();
+      if (params.patientId) q.append('patientId', params.patientId);
+      if (params.doctorId) q.append('doctorId', params.doctorId);
+      if (params.status) q.append('status', params.status);
+      const str = q.toString();
+      if (str) url += `?${str}`;
+    }
+    return request<Prescription[]>(url);
+  },
+  createPrescription: (data: Partial<Prescription>) =>
+    request<Prescription>('/api/prescriptions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updatePrescription: (id: string, data: Partial<Prescription>) =>
+    request<Prescription>(`/api/prescriptions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  dispensePrescription: (
+    id: string,
+    dispenseData: {
+      pharmacistId?: string;
+      pharmacistName?: string;
+      pharmacistNotes?: string;
+      deductStock?: boolean;
+    } = {}
+  ) =>
+    request<Prescription>(`/api/prescriptions/${id}/dispense`, {
+      method: 'POST',
+      body: JSON.stringify(dispenseData),
+    }),
+  deletePrescription: (id: string) =>
+    request<{ success: boolean }>(`/api/prescriptions/${id}`, { method: 'DELETE' }),
+
   // Lab Tests
   getLabTests: () => request<LabTestRequest[]>('/api/lab-tests'),
   createLabTest: (reqTest: Partial<LabTestRequest>) =>
     request<LabTestRequest>('/api/lab-tests', { method: 'POST', body: JSON.stringify(reqTest) }),
   updateLabTest: (id: string, reqTest: Partial<LabTestRequest>) =>
     request<LabTestRequest>(`/api/lab-tests/${id}`, { method: 'PUT', body: JSON.stringify(reqTest) }),
+  deleteLabTest: (id: string) =>
+    request<{ success: boolean }>(`/api/lab-tests/${id}`, { method: 'DELETE' }),
 
   // Maternity
   getMaternityData: () =>
@@ -181,6 +224,27 @@ export const api = {
   updateInvoice: (id: string, inv: Partial<Invoice>) =>
     request<Invoice>(`/api/invoices/${id}`, { method: 'PUT', body: JSON.stringify(inv) }),
 
-  // Admin Stats
+  // Admin Stats & User Management
   getStats: () => request<any>('/api/stats'),
+  getUsers: () => request<User[]>('/api/admin/users'),
+  createUser: (userData: Partial<User> & { password?: string }) =>
+    request<User>('/api/admin/users', { method: 'POST', body: JSON.stringify(userData) }),
+  updateUserRole: (id: string, role: UserRole) =>
+    request<User>(`/api/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
+  updateUserStatus: (id: string, isActive: boolean, status?: string) =>
+    request<User>(`/api/admin/users/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ isActive, status: status || (isActive ? 'Active' : 'Disabled') }),
+    }),
+  disableAllNonAdmins: () =>
+    request<{ success: boolean; disabledCount: number; users: User[] }>(
+      '/api/admin/users/disable-all-non-admins',
+      { method: 'POST' }
+    ),
+  enableAllUsers: () =>
+    request<{ success: boolean; users: User[] }>('/api/admin/users/enable-all', {
+      method: 'POST',
+    }),
+  deleteUser: (id: string) =>
+    request<{ success: boolean }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
 };

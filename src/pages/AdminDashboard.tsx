@@ -11,6 +11,7 @@ import {
   Activity,
   ArrowRight,
   ShieldCheck,
+  Pill,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -92,6 +93,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab })
       tab: 'payments',
     },
     {
+      title: 'Doctor e-Prescriptions',
+      value: stats?.pendingPrescriptions !== undefined ? `${stats.pendingPrescriptions} Pending (${stats.totalPrescriptions || 0} Total)` : `${stats?.totalPrescriptions || 0}`,
+      icon: Pill,
+      color: stats?.pendingPrescriptions > 0 ? 'bg-amber-600' : 'bg-emerald-600',
+      tab: 'prescriptions',
+    },
+    {
       title: 'Low Stock Alerts',
       value: stats?.lowStockCount || 0,
       icon: AlertTriangle,
@@ -116,13 +124,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab })
           </p>
         </div>
 
-        <button
-          onClick={() => setCurrentTab('billing')}
-          className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 shrink-0"
-        >
-          <span>Generate Patient Invoice</span>
-          <ArrowRight className="w-4 h-4 text-emerald-700" />
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setCurrentTab('user-management')}
+            className="bg-emerald-900/60 hover:bg-emerald-900 text-white border border-emerald-400/40 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-300" />
+            <span>Manage Users & Roles</span>
+          </button>
+          <button
+            onClick={() => setCurrentTab('payments')}
+            className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 shrink-0 cursor-pointer"
+          >
+            <span>Generate Patient Invoice</span>
+            <ArrowRight className="w-4 h-4 text-emerald-700" />
+          </button>
+        </div>
       </div>
 
       {/* KPI Stats Grid */}

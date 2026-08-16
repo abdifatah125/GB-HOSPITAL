@@ -58,10 +58,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const res = await api.login(usernameOrEmail, password);
+      if (res.user.isActive === false || res.user.status === 'Disabled') {
+        throw new Error('Account Disabled: This user account has been deactivated by the Hospital Administrator.');
+      }
       setStoredToken(res.token);
       setAuthenticatedUser(res.user);
       setUser(res.user);
     } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes('disabled')) {
+        throw err;
+      }
       // Client fallback for seeded demo users
       const target = usernameOrEmail.toLowerCase().trim();
       const match = INITIAL_USERS.find(
@@ -69,6 +75,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       if (match) {
+        if (match.isActive === false || match.status === 'Disabled') {
+          throw new Error('Account Disabled: This user account has been deactivated by the Hospital Administrator.');
+        }
         setAuthenticatedUser(match);
         setUser(match);
       } else {
@@ -88,14 +97,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role,
       name: `Demo ${role}`,
       createdAt: new Date().toISOString().split('T')[0],
+      isActive: true,
+      status: 'Active' as const,
     };
 
     try {
       const res = await api.login(matchedUser.username, 'password');
+      if (res.user.isActive === false || res.user.status === 'Disabled') {
+        throw new Error(`Account for role "${role}" has been deactivated by the Hospital Administrator.`);
+      }
       setStoredToken(res.token);
       setAuthenticatedUser(res.user);
       setUser(res.user);
-    } catch {
+    } catch (err: any) {
+      if (err.message && (err.message.includes('deactivated') || err.message.includes('Disabled') || err.message.includes('disabled'))) {
+        throw err;
+      }
+      if (matchedUser.isActive === false || matchedUser.status === 'Disabled') {
+        throw new Error(`Account for role "${role}" is deactivated by the Administrator.`);
+      }
       setAuthenticatedUser(matchedUser);
       setUser(matchedUser);
     } finally {

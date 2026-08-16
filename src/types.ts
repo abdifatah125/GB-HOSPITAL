@@ -21,6 +21,8 @@ export interface User {
   departmentId?: string;
   phone?: string;
   createdAt: string;
+  isActive?: boolean;
+  status?: 'Active' | 'Disabled';
 }
 
 export interface Department {
@@ -171,7 +173,7 @@ export interface PharmacyItem {
   reorderThreshold: number;
 }
 
-export type LabTestStatus = 'Requested' | 'In Progress' | 'Completed';
+export type LabTestStatus = 'Requested' | 'In Progress' | 'Completed' | 'Rejected';
 
 export interface LabTestRequest {
   id: string;
@@ -182,12 +184,18 @@ export interface LabTestRequest {
   testName: string; // e.g. "Full Blood Count (FBC)", "Lipid Profile", "Chest X-Ray", "Urinalysis"
   category: string;
   status: LabTestStatus;
+  priority?: 'Routine' | 'Urgent / STAT';
+  clinicalNotes?: string;
+  sampleType?: string;
+  specimenBarcode?: string;
   requestDate: string;
+  sampleCollectedDate?: string;
   resultDate?: string;
   results?: string;
   referenceRange?: string;
   technicianNotes?: string;
   technicianName?: string;
+  rejectionReason?: string;
 }
 
 export interface MaternityRecord {
@@ -264,4 +272,50 @@ export interface Invoice {
   paidAmount: number;
   status: InvoiceStatus;
   notes?: string;
+}
+
+export type PrescriptionStatus = 'Pending' | 'Dispensed' | 'Partially Dispensed' | 'Cancelled';
+export type PrescriptionPriority = 'Routine' | 'Urgent' | 'STAT / Emergency';
+
+export interface PrescriptionItem {
+  id?: string;
+  medicineId?: string;
+  medicineName: string;
+  genericName?: string;
+  dosage: string; // e.g., "500mg" or "1 tablet"
+  dosageForm?: string; // Tablet, Syrup, Capsule, Injection
+  frequency: string; // e.g., "TDS (3 times daily)", "BD (Twice daily)", "OD (Once daily)"
+  duration: string; // e.g., "5 days", "7 days", "1 month"
+  quantity: number; // e.g., 15
+  instructions: string; // e.g., "Take with food after meals"
+  dispensed?: boolean;
+  dispensedQuantity?: number;
+  unitPrice?: number;
+}
+
+export interface Prescription {
+  id: string;
+  prescriptionNumber: string; // e.g., "RX-2026-001"
+  patientId: string;
+  patientName: string;
+  patientAge?: number;
+  patientGender?: 'Male' | 'Female' | 'Other';
+  patientContact?: string;
+  doctorId: string;
+  doctorName: string;
+  departmentId?: string;
+  departmentName?: string;
+  diagnosis: string;
+  clinicalNotes?: string;
+  allergies?: string;
+  priority: PrescriptionPriority;
+  status: PrescriptionStatus;
+  items: PrescriptionItem[];
+  createdAt: string;
+  dispensedAt?: string;
+  dispensedByPharmacistId?: string;
+  dispensedByPharmacistName?: string;
+  pharmacistNotes?: string;
+  totalCost?: number;
+  invoiceId?: string;
 }

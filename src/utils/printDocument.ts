@@ -31,6 +31,23 @@ export interface PrintAppointmentSlipData {
   notes?: string;
 }
 
+export interface PrintLabReportData {
+  id: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  doctorName: string;
+  testName: string;
+  category: string;
+  requestDate: string;
+  status: string;
+  results?: string;
+  referenceRange?: string;
+  technicianNotes?: string;
+  technicianName?: string;
+  resultDate?: string;
+}
+
 export interface PrintInvoiceData {
   id: string;
   invoiceNumber: string;
@@ -539,3 +556,254 @@ export const printPatientRegistrationCard = (pat: PrintPatientCardData) => {
 export const printAppointmentSlip = (apt: PrintAppointmentSlipData) => {
   printDocumentContent(`Appointment Slip - ${apt.patientName}`, getAppointmentSlipHtml(apt));
 };
+
+export const getLabReportHtml = (lab: PrintLabReportData): string => `
+  <div class="header">
+    <div class="brand">
+      <div class="logo-badge">GB-LAB</div>
+      <div>
+        <h1 class="hospital-title">GARASBALEY HOSPITAL</h1>
+        <p class="hospital-subtitle">Department of Clinical Laboratory & Pathology Services</p>
+        <p class="hospital-contact">Garasbaley Main Road, Mogadishu, Somalia | Tel: +252 61 5000000 | Lab Ext: 104</p>
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge ${lab.status === 'Completed' ? 'badge-green' : 'badge-blue'}">${lab.status === 'Completed' ? 'Diagnostic Report' : 'Lab Test Order'}</span>
+      <div style="font-family: monospace; font-weight: 900; font-size: 13px; margin-top: 4px; color: #047857;">LAB-ID: ${lab.id}</div>
+    </div>
+  </div>
+
+  <div class="card" style="background: #f8fafc; border-color: #cbd5e1;">
+    <div class="grid-2">
+      <div>
+        <div class="label">Patient Full Name</div>
+        <div class="val-highlight">${lab.patientName}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Patient MRN: ${lab.patientId}</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="label">Ordering Physician / Doctor</div>
+        <div class="val" style="color: #047857; font-weight: 800;">${lab.doctorName}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Order Date: ${lab.requestDate}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid-3" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+      <div>
+        <div class="label">Diagnostic Investigation</div>
+        <div class="val" style="font-size: 14px; font-weight: 800; color: #065f46;">${lab.testName}</div>
+      </div>
+      <div>
+        <div class="label">Laboratory Discipline</div>
+        <div class="val">${lab.category}</div>
+      </div>
+      <div>
+        <div class="label">Specimen / Status</div>
+        <span class="badge ${lab.status === 'Completed' ? 'badge-green' : 'badge-blue'}">${lab.status}</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 10px;">
+      <div class="label" style="font-size: 12px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
+        🧪 Verified Laboratory Findings & Measurement Values:
+      </div>
+      <div style="padding: 12px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0; font-size: 13px; color: #064e3b; line-height: 1.6; white-space: pre-wrap; font-weight: 600;">
+        ${lab.results || 'Pending laboratory execution / specimen in processing.'}
+      </div>
+    </div>
+
+    ${
+      lab.referenceRange
+        ? `
+      <div style="margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 12px;">
+        <div class="label">Clinical Biological Reference Range / Normal Intervals:</div>
+        <div style="font-weight: 600; color: #334155; margin-top: 2px;">${lab.referenceRange}</div>
+      </div>
+    `
+        : ''
+    }
+
+    ${
+      lab.technicianNotes
+        ? `
+      <div style="margin-top: 10px; padding: 10px; background: #fffbeb; border-radius: 6px; border: 1px solid #fef3c7; font-size: 12px;">
+        <div class="label" style="color: #92400e;">Medical Laboratory Technologist Remarks:</div>
+        <div style="color: #78350f; font-style: italic; margin-top: 2px;">${lab.technicianNotes}</div>
+      </div>
+    `
+        : ''
+    }
+  </div>
+
+  <div class="card" style="font-size: 11px; color: #64748b;">
+    <strong>Laboratory Accreditation & Disclaimer:</strong>
+    <p style="margin-top: 2px;">
+      This laboratory test result has been analyzed under standard clinical pathology quality control protocols. Diagnostic findings should be clinically correlated with patient symptoms by the ordering physician (${lab.doctorName}).
+    </p>
+  </div>
+
+  <div class="footer">
+    <div>
+      Verified by Technologist: <strong>${lab.technicianName || 'Laboratory Duty Officer'}</strong><br>
+      Result Released Date: <strong>${lab.resultDate || new Date().toISOString().split('T')[0]}</strong><br>
+      Garasbaley Hospital Diagnostic EMR (v2.5)
+    </div>
+    <div class="signature-line">
+      Chief Medical Technologist Stamp
+    </div>
+  </div>
+`;
+
+export const printLabTestReport = (lab: PrintLabReportData) => {
+  printDocumentContent(`Lab Report - ${lab.testName} - ${lab.patientName}`, getLabReportHtml(lab));
+};
+
+export interface PrintPrescriptionData {
+  id: string;
+  prescriptionNumber: string;
+  patientId: string;
+  patientName: string;
+  patientAge?: number;
+  patientGender?: string;
+  patientContact?: string;
+  allergies?: string;
+  doctorId: string;
+  doctorName: string;
+  departmentName?: string;
+  diagnosis: string;
+  clinicalNotes?: string;
+  priority: string;
+  status: string;
+  createdAt: string;
+  items: Array<{
+    medicineName: string;
+    genericName?: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    quantity: number;
+    instructions: string;
+  }>;
+  dispensedAt?: string;
+  dispensedByPharmacistName?: string;
+  pharmacistNotes?: string;
+}
+
+export const getPrescriptionSlipHtml = (rx: PrintPrescriptionData): string => `
+  <div class="header">
+    <div class="brand">
+      <div class="logo-badge" style="background: #047857;">Rx</div>
+      <div>
+        <h1 class="hospital-title">GARASBALEY HOSPITAL</h1>
+        <p class="hospital-subtitle">Official Doctor e-Prescription & Pharmacy Dispensing Record</p>
+        <p class="hospital-contact">Garasbaley Main Road, Mogadishu, Somalia | Tel: +252 61 5000000 | Pharmacy Ext: 103</p>
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <span class="badge ${rx.status === 'Dispensed' ? 'badge-green' : rx.priority === 'Urgent' || rx.priority === 'STAT / Emergency' ? 'badge-red' : 'badge-blue'}">${rx.status}</span>
+      <div style="font-family: monospace; font-weight: 900; font-size: 14px; margin-top: 4px; color: #047857;">${rx.prescriptionNumber || rx.id}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Priority: <strong>${rx.priority || 'Routine'}</strong></div>
+    </div>
+  </div>
+
+  <div class="card" style="background: #f8fafc; border-color: #cbd5e1;">
+    <div class="grid-2">
+      <div>
+        <div class="label">Patient Name & Demographics</div>
+        <div class="val-highlight">${rx.patientName}</div>
+        <div style="font-size: 11px; color: #475569; margin-top: 2px;">
+          ${rx.patientAge ? `Age: ${rx.patientAge} yrs` : ''} ${rx.patientGender ? `| Gender: ${rx.patientGender}` : ''} | MRN: ${rx.patientId}
+        </div>
+        ${rx.patientContact ? `<div style="font-size: 11px; color: #64748b;">Contact: ${rx.patientContact}</div>` : ''}
+        ${rx.allergies && rx.allergies !== 'None' ? `
+          <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 11px; border-radius: 4px; border: 1px solid #f87171;">
+            ⚠️ Known Allergies: ${rx.allergies}
+          </div>
+        ` : ''}
+      </div>
+
+      <div style="text-align: right;">
+        <div class="label">Prescribing Physician</div>
+        <div class="val" style="color: #047857; font-weight: 800; font-size: 14px;">${rx.doctorName}</div>
+        <div style="font-size: 11px; color: #64748b;">${rx.departmentName || 'Clinical Department'}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Date Issued: <strong>${rx.createdAt}</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-left: 4px solid #059669;">
+    <div class="label" style="font-weight: 800; color: #065f46; font-size: 12px;">Primary Clinical Diagnosis & Indication:</div>
+    <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px;">${rx.diagnosis}</div>
+    ${rx.clinicalNotes ? `<div style="font-size: 12px; color: #475569; margin-top: 4px; font-style: italic;">Clinical Notes: ${rx.clinicalNotes}</div>` : ''}
+  </div>
+
+  <div class="card">
+    <div style="font-weight: 900; font-size: 14px; color: #065f46; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+      <span>💊 Prescribed Medications & Dosage Regimen</span>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+      <thead>
+        <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; text-align: left;">
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155;">#</th>
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155;">Medication / Generic</th>
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155;">Dosage & Strength</th>
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155;">Frequency</th>
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155;">Duration</th>
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155; text-align: center;">Qty</th>
+          <th style="padding: 8px 10px; font-weight: 800; color: #334155;">Directions / Instructions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rx.items.map((item, index) => `
+          <tr style="border-bottom: 1px solid #e2e8f0; background: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+            <td style="padding: 10px; font-weight: 800; color: #047857;">${index + 1}</td>
+            <td style="padding: 10px;">
+              <div style="font-weight: 800; color: #0f172a; font-size: 13px;">${item.medicineName}</div>
+              ${item.genericName ? `<div style="font-size: 10px; color: #64748b;">Gen: ${item.genericName}</div>` : ''}
+            </td>
+            <td style="padding: 10px; font-weight: 700; color: #1e293b;">${item.dosage}</td>
+            <td style="padding: 10px; font-weight: 600; color: #047857;">${item.frequency}</td>
+            <td style="padding: 10px; font-weight: 600; color: #475569;">${item.duration}</td>
+            <td style="padding: 10px; font-weight: 800; color: #0f172a; text-align: center;">${item.quantity}</td>
+            <td style="padding: 10px; font-style: italic; color: #334155;">${item.instructions || 'As directed by physician'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  ${rx.status === 'Dispensed' ? `
+    <div class="card" style="background: #f0fdf4; border-color: #86efac;">
+      <div style="font-weight: 800; color: #166534; font-size: 12px; display: flex; items-center: gap: 6px;">
+        <span>✅ Pharmacy Dispensing Verification:</span>
+      </div>
+      <div style="font-size: 12px; color: #14532d; margin-top: 4px;">
+        Dispensed & Verified by Pharmacist: <strong>${rx.dispensedByPharmacistName || 'Clinical Pharmacist'}</strong> on <strong>${rx.dispensedAt || rx.createdAt}</strong>
+      </div>
+      ${rx.pharmacistNotes ? `<div style="font-size: 11px; color: #166534; margin-top: 3px; font-style: italic;">Pharmacist Note: ${rx.pharmacistNotes}</div>` : ''}
+    </div>
+  ` : `
+    <div class="card" style="background: #fffbeb; border-color: #fde68a; font-size: 12px; color: #92400e;">
+      <strong>Pharmacy Instruction:</strong> Please present this prescription slip or digital MRN at Garasbaley Hospital Outpatient Pharmacy Counter for medication dispensing and dosage counseling.
+    </div>
+  `}
+
+  <div class="footer">
+    <div>
+      Authorized Medical Officer: <strong>${rx.doctorName}</strong><br>
+      System Reference: <strong>${rx.prescriptionNumber || rx.id}</strong><br>
+      Garasbaley Hospital EMR Pharmacy Dispatch (v2.5)
+    </div>
+    <div class="signature-line">
+      Doctor Digital Signature & License Stamp
+    </div>
+  </div>
+`;
+
+export const printPrescriptionSlip = (rx: PrintPrescriptionData) => {
+  printDocumentContent(`Prescription - ${rx.prescriptionNumber || rx.id} - ${rx.patientName}`, getPrescriptionSlipHtml(rx));
+};
+
+

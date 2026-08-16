@@ -17,6 +17,7 @@ import {
   INITIAL_DELIVERIES,
   INITIAL_POSTNATAL_VISITS,
   INITIAL_INVOICES,
+  INITIAL_PRESCRIPTIONS,
 } from './src/data/seedData';
 import {
   User,
@@ -32,6 +33,7 @@ import {
   DeliveryRecord,
   PostnatalVisit,
   Invoice,
+  Prescription,
 } from './src/types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gb_hospital_secret_key_2026';
@@ -51,6 +53,7 @@ let ancVisits: AntenatalVisit[] = [...INITIAL_ANC_VISITS];
 let deliveryRecords: DeliveryRecord[] = [...INITIAL_DELIVERIES];
 let postnatalVisits: PostnatalVisit[] = [...INITIAL_POSTNATAL_VISITS];
 let invoices: Invoice[] = [...INITIAL_INVOICES];
+let prescriptions: Prescription[] = [...INITIAL_PRESCRIPTIONS];
 
 async function startServer() {
   const app = express();
@@ -84,6 +87,13 @@ async function startServer() {
 
     if (!user) {
       return res.status(401).json({ error: 'User not found with provided credentials' });
+    }
+
+    // Check if user is disabled / deactivated by Admin
+    if (user.isActive === false || user.status === 'Disabled') {
+      return res.status(403).json({
+        error: 'Account Disabled: This user account has been deactivated by the Hospital Administrator. Access is blocked.',
+      });
     }
 
     // For demo ease, any password or 'password' works for seeded demo users
@@ -120,6 +130,8 @@ async function startServer() {
       phone,
       departmentId,
       createdAt: new Date().toISOString().split('T')[0],
+      isActive: true,
+      status: 'Active',
     };
 
     users.push(newUser);
@@ -155,6 +167,136 @@ async function startServer() {
     const user = users.find((u) => u.id === req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
+  });
+
+  // --- ADMIN USER & ROLE MANAGEMENT ---
+  app.get('/api/admin/users', (req, res) => {
+    res.json(users);
+  });
+
+  app.post('/api/admin/users', (req, res) => {
+    const { username, email, role, name, phone, departmentId, isActive, status } = req.body;
+
+    if (!username || !email || !role || !name) {
+      return res.status(400).json({ error: 'Username, email, role, and full name are required' });
+    }
+
+    const existing = users.find(
+      (u) => u.username.toLowerCase() === username.toLowerCase() || u.email.toLowerCase() === email.toLowerCase()
+    );
+
+    if (existing) {
+      return res.status(400).json({ error: 'A user with this username or email already exists' });
+    }
+
+    const newUser: User = {
+      id: `usr-${Date.now()}`,
+      username: username.trim(),
+      email: email.trim().toLowerCase(),
+      role: role || 'Patient',
+      name: name.trim(),
+      phone: phone || '',
+      departmentId: departmentId || '',
+      createdAt: new Date().toISOString().split('T')[0],
+      isActive: isActive !== false,
+      status: status || (isActive === false ? 'Disabled' : 'Active'),
+    };
+
+    users.push(newUser);
+
+    // Auto-create patient or doctor record if appropriate
+    if (newUser.role === 'Patient') {
+      patients.push({
+        id: `pat-${Date.now()}`,
+        name: newUser.name,
+        age: 30,
+        gender: 'Male',
+        contact: newUser.phone || '+252 61 0000000',
+        email: newUser.email,
+        address: 'Garasbaley District, Mogadishu',
+        bloodGroup: 'O+',
+        medicalHistory: 'Registered via Admin Portal.',
+        allergies: 'None reported',
+        emergencyContact: 'Family Contact (+252 61 0000000)',
+        createdAt: newUser.createdAt,
+      });
+    } else if (newUser.role === 'Doctor' || newUser.role === 'Midwife') {
+      const docDept = departments.find((d) => d.id === departmentId) || departments[0];
+      doctors.push({
+        id: `doc-${Date.now()}`,
+        userId: newUser.id,
+        name: newUser.name,
+        role: newUser.role === 'Midwife' ? 'Midwife' : 'Doctor',
+        roleCategory: newUser.role === 'Midwife' ? 'Nursing & Midwifery' : 'Medical & Specialists',
+        designation: newUser.role === 'Midwife' ? 'Registered Midwife' : 'Medical Practitioner',
+        qualification: 'Medical Degree / Certified',
+        shiftType: 'Morning Shift (08:00 - 14:00)',
+        specialization: newUser.role === 'Midwife' ? 'Maternity & Childbirth' : 'General Medicine',
+        departmentId: docDept ? docDept.id : 'dept-genmed',
+        departmentName: docDept ? docDept.name : 'General Medicine',
+        contact: newUser.phone || '+252 61 5000000',
+        email: newUser.email,
+        availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Sat'],
+        availableHours: '08:00 AM - 02:00 PM',
+        consultationFee: newUser.role === 'Midwife' ? 15 : 25,
+      });
+    }
+
+    res.status(201).json(newUser);
+  });
+
+  app.put('/api/admin/users/:id/role', (req, res) => {
+    const { role } = req.body;
+    if (!role) return res.status(400).json({ error: 'Role is required' });
+
+    const index = users.findIndex((u) => u.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+    users[index].role = role;
+    res.json(users[index]);
+  });
+
+  app.put('/api/admin/users/:id/status', (req, res) => {
+    const { isActive, status } = req.body;
+    const index = users.findIndex((u) => u.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+    const newIsActive = typeof isActive === 'boolean' ? isActive : status === 'Active';
+    users[index].isActive = newIsActive;
+    users[index].status = newIsActive ? 'Active' : 'Disabled';
+    res.json(users[index]);
+  });
+
+  app.post('/api/admin/users/disable-all-non-admins', (req, res) => {
+    let disabledCount = 0;
+    users = users.map((u) => {
+      if (u.role !== 'Admin' && u.id !== 'usr-admin') {
+        disabledCount++;
+        return { ...u, isActive: false, status: 'Disabled' as const };
+      }
+      return u;
+    });
+    res.json({ success: true, disabledCount, users });
+  });
+
+  app.post('/api/admin/users/enable-all', (req, res) => {
+    users = users.map((u) => ({
+      ...u,
+      isActive: true,
+      status: 'Active' as const,
+    }));
+    res.json({ success: true, users });
+  });
+
+  app.delete('/api/admin/users/:id', (req, res) => {
+    const targetUser = users.find((u) => u.id === req.params.id);
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
+    if (targetUser.id === 'usr-admin' || targetUser.username === 'admin') {
+      return res.status(400).json({ error: 'Primary Administrator account cannot be deleted' });
+    }
+
+    users = users.filter((u) => u.id !== req.params.id);
+    res.json({ success: true });
   });
 
   // --- DEPARTMENTS ---
@@ -360,6 +502,132 @@ async function startServer() {
     res.json(item);
   });
 
+  // --- PRESCRIPTIONS & E-RX DISPATCH (Doctor -> Pharmacist) ---
+  app.get('/api/prescriptions', (req, res) => {
+    const { patientId, doctorId, status } = req.query;
+    let result = [...prescriptions];
+
+    if (patientId) {
+      result = result.filter((p) => p.patientId === patientId);
+    }
+    if (doctorId) {
+      result = result.filter((p) => p.doctorId === doctorId);
+    }
+    if (status) {
+      result = result.filter((p) => p.status.toLowerCase() === (status as string).toLowerCase());
+    }
+
+    // Sort newest first
+    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.json(result);
+  });
+
+  app.post('/api/prescriptions', (req, res) => {
+    const body = req.body;
+    const count = prescriptions.length + 1;
+    const padded = String(count).padStart(3, '0');
+    const rxNumber = `RX-2026-${padded}`;
+
+    const newPrescription: Prescription = {
+      id: `rx-${Date.now()}`,
+      prescriptionNumber: body.prescriptionNumber || rxNumber,
+      patientId: body.patientId,
+      patientName: body.patientName || 'Unknown Patient',
+      patientAge: body.patientAge,
+      patientGender: body.patientGender,
+      patientContact: body.patientContact,
+      doctorId: body.doctorId,
+      doctorName: body.doctorName || 'Doctor',
+      departmentId: body.departmentId,
+      departmentName: body.departmentName,
+      diagnosis: body.diagnosis || 'Clinical Consultation',
+      clinicalNotes: body.clinicalNotes || '',
+      allergies: body.allergies || 'None',
+      priority: body.priority || 'Routine',
+      status: 'Pending',
+      items: Array.isArray(body.items) ? body.items.map((it: any, idx: number) => ({
+        id: it.id || `item-rx-${Date.now()}-${idx}`,
+        medicineId: it.medicineId,
+        medicineName: it.medicineName,
+        genericName: it.genericName,
+        dosage: it.dosage || 'As directed',
+        dosageForm: it.dosageForm || 'Tablet',
+        frequency: it.frequency || 'TDS (3 times daily)',
+        duration: it.duration || '5 Days',
+        quantity: Number(it.quantity) || 1,
+        instructions: it.instructions || 'Take as directed',
+        dispensed: false,
+        unitPrice: Number(it.unitPrice) || 0,
+      })) : [],
+      createdAt: body.createdAt || new Date().toISOString().split('T')[0],
+      totalCost: body.totalCost || 0,
+    };
+
+    prescriptions.unshift(newPrescription);
+    res.status(201).json(newPrescription);
+  });
+
+  app.put('/api/prescriptions/:id', (req, res) => {
+    const index = prescriptions.findIndex((p) => p.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Prescription not found' });
+
+    prescriptions[index] = {
+      ...prescriptions[index],
+      ...req.body,
+    };
+
+    res.json(prescriptions[index]);
+  });
+
+  // Pharmacist Dispensing Endpoint
+  app.post('/api/prescriptions/:id/dispense', (req, res) => {
+    const index = prescriptions.findIndex((p) => p.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Prescription not found' });
+
+    const rx = prescriptions[index];
+    const { pharmacistId, pharmacistName, pharmacistNotes, deductStock } = req.body;
+
+    // Optionally auto-deduct items from pharmacyStock
+    if (deductStock !== false && Array.isArray(rx.items)) {
+      rx.items.forEach((item) => {
+        // Try matching by medicineId or medicineName
+        let stockItem = null;
+        if (item.medicineId) {
+          stockItem = pharmacyStock.find((s) => s.medicineId === item.medicineId || s.id === item.medicineId);
+        }
+        if (!stockItem && item.medicineName) {
+          const lowerName = item.medicineName.toLowerCase();
+          stockItem = pharmacyStock.find((s) =>
+            s.medicineName.toLowerCase().includes(lowerName) || lowerName.includes(s.medicineName.toLowerCase())
+          );
+        }
+
+        if (stockItem) {
+          const qty = Number(item.quantity) || 1;
+          stockItem.stockQuantity = Math.max(0, stockItem.stockQuantity - qty);
+        }
+        item.dispensed = true;
+      });
+    }
+
+    const nowFormatted = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    prescriptions[index] = {
+      ...rx,
+      status: 'Dispensed',
+      dispensedAt: nowFormatted,
+      dispensedByPharmacistId: pharmacistId || 'usr-pharm',
+      dispensedByPharmacistName: pharmacistName || 'Mohamed Warsame (Chief Pharmacist)',
+      pharmacistNotes: pharmacistNotes || 'All prescribed medicines verified, packaged, and dispensed to patient.',
+    };
+
+    res.json(prescriptions[index]);
+  });
+
+  app.delete('/api/prescriptions/:id', (req, res) => {
+    prescriptions = prescriptions.filter((p) => p.id !== req.params.id);
+    res.json({ success: true });
+  });
+
   // --- LAB TESTS ---
   app.get('/api/lab-tests', (req, res) => {
     res.json(labTests);
@@ -381,6 +649,11 @@ async function startServer() {
     if (index === -1) return res.status(404).json({ error: 'Lab test request not found' });
     labTests[index] = { ...labTests[index], ...req.body };
     res.json(labTests[index]);
+  });
+
+  app.delete('/api/lab-tests/:id', (req, res) => {
+    labTests = labTests.filter((l) => l.id !== req.params.id);
+    res.json({ success: true });
   });
 
   // --- MATERNITY & MIDWIFERY ---
@@ -500,12 +773,17 @@ async function startServer() {
       return diffDays <= 60;
     });
 
+    const totalPrescriptions = prescriptions.length;
+    const pendingPrescriptions = prescriptions.filter((p) => p.status === 'Pending').length;
+
     res.json({
       totalPatients,
       totalDoctors,
       totalDepartments,
       todayAppointments,
       totalRevenue,
+      totalPrescriptions,
+      pendingPrescriptions,
       lowStockCount: lowStockAlerts.length,
       lowStockItems: lowStockAlerts,
       expiryCount: expiryAlerts.length,
